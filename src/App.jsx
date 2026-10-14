@@ -290,7 +290,7 @@ function App() {
 
         <audio
           ref={audioRef}
-          src="/Audio cleaner audio.m4a"
+          src={`${import.meta.env.BASE_URL}Audio%20cleaner%20audio.m4a`}
           preload="auto"
         />
 
