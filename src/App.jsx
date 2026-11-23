@@ -187,14 +187,16 @@ function App() {
 
     // Static is loudest when the settings are far from the solution.
     // It fades as the player gets closer to the intended settings.
-    const staticLevel = 0.65 * (1 - quality / 100)
+    const staticLevel = isPlaying
+    ? 0.65 * (1 - quality / 100)
+    : 0
 
     staticGain.gain.setTargetAtTime(
       staticLevel,
       now,
       0.08
     )
-  }, [gain, frequency, quality, audioReady])
+  }, [gain, frequency, quality, audioReady, isPlaying])
 
   // Keep playback time and duration in sync.
   useEffect(() => {
@@ -215,12 +217,36 @@ function App() {
     }
 
     const handleError = () => {
-      setAudioReady(false)
-      setAudioError(true)
-      setIsPlaying(false)
-    }
+    setAudioReady(false)
+    setAudioError(true)
+    setIsPlaying(false)
 
-    const handleEnded = () => setIsPlaying(false)
+    const context = contextRef.current
+    const staticGain = staticGainRef.current
+
+    if (context && staticGain) {
+      staticGain.gain.setTargetAtTime(
+        0,
+        context.currentTime,
+        0.03
+      )
+    }
+  }
+
+    const handleEnded = () => {
+    setIsPlaying(false)
+
+    const context = contextRef.current
+    const staticGain = staticGainRef.current
+
+    if (context && staticGain) {
+      staticGain.gain.setTargetAtTime(
+        0,
+        context.currentTime,
+        0.03
+      )
+    }
+  }
 
     audio.addEventListener('timeupdate', updateTime)
     audio.addEventListener('loadedmetadata', updateDuration)
@@ -257,12 +283,19 @@ function App() {
       }
 
       if (audio.paused) {
-        await audio.play()
-        setIsPlaying(true)
-      } else {
-        audio.pause()
-        setIsPlaying(false)
-      }
+      await audio.play()
+      setIsPlaying(true)
+    } else {
+      audio.pause()
+      setIsPlaying(false)
+
+      staticGainRef.current?.gain.setTargetAtTime(
+        0,
+        context.currentTime,
+        0.03
+      )
+    }
+
     } catch (error) {
       console.error('Audio playback failed:', error)
       setAudioError(true)
