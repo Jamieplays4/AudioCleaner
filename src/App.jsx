@@ -158,7 +158,7 @@ function App() {
 
     // Frequency: 300–12000 Hz.
     // Higher settings let more high-frequency speech detail through.
-    const cutoff = 300 + (frequency / 100) * 11700
+    const cutoff = 500 + (frequency / 100) * 7500
 
     filter.frequency.setTargetAtTime(
       cutoff,
@@ -168,7 +168,7 @@ function App() {
 
     // Static is loudest when the settings are far from the solution.
     // It fades as the player gets closer to the intended settings.
-    const staticLevel = 0.13 * (1 - quality / 100)
+    const staticLevel = 0.65 * (1 - quality / 100)
 
     staticGain.gain.setTargetAtTime(
       staticLevel,
