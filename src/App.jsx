@@ -26,6 +26,7 @@ function App() {
   const contextRef = useRef(null)
   const voiceGainRef = useRef(null)
   const filterRef = useRef(null)
+  const highPassRef = useRef(null)
   const staticGainRef = useRef(null)
   const noiseSourceRef = useRef(null)
   const masterGainRef = useRef(null)
@@ -67,13 +68,23 @@ function App() {
     const filter = context.createBiquadFilter()
     const voiceGain = context.createGain()
 
+    // Create high-pass filter
+    const highPass = context.createBiquadFilter()
+
+    highPass.type = 'highpass'
+    highPass.frequency.value = 100
+    highPass.Q.value = 1
+
     // A low-pass filter gives the frequency slider a real effect.
     filter.type = 'lowpass'
     filter.frequency.value = 6150
 
     // Create the voice processing chain.
-    voiceSource.connect(filter)
+    voiceSource.connect(highPass)
+    highPass.connect(filter)
     filter.connect(voiceGain)
+
+    highPassRef.current = highPass
 
     // Generate continuous radio hiss in memory.
     const bufferLength = context.sampleRate * 2
@@ -126,6 +137,7 @@ function App() {
         voiceSource.disconnect()
         filter.disconnect()
         voiceGain.disconnect()
+        highPass.disconnect()
         noiseSource.disconnect()
         noiseFilter.disconnect()
         staticGain.disconnect()
@@ -144,24 +156,31 @@ function App() {
     const voiceGain = voiceGainRef.current
     const filter = filterRef.current
     const staticGain = staticGainRef.current
+    const highPass = highPassRef.current
 
-    if (!context || !voiceGain || !filter || !staticGain) return
+    if (!context || !voiceGain || !filter || !staticGain || !highPass) return
 
     const now = context.currentTime
 
     // Voice volume: slider 0–100 maps to 0–1.
+    const clarity = quality / 100
+
+    const voiceVolume =
+      (gain / 100) * (0.15 + clarity * 0.85)
+
     voiceGain.gain.setTargetAtTime(
-      gain / 100,
+      voiceVolume,
       now,
       0.04
     )
 
     // Frequency: 300–12000 Hz.
     // Higher settings let more high-frequency speech detail through.
-    const cutoff = 500 + (frequency / 100) * 7500
+    // Control low-frequency removal
+    const lowCutoff = 100 + (frequency / 100) * 1100
 
-    filter.frequency.setTargetAtTime(
-      cutoff,
+    highPass.frequency.setTargetAtTime(
+      lowCutoff,
       now,
       0.04
     )
